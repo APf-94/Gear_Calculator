@@ -10,29 +10,32 @@ from fitparse import FitFile
 # --- SEITEN-SETUP ---
 st.set_page_config(page_title="Trainings-Cockpit 2027", layout="wide", page_icon="🚴‍♂️")
 
-# --- 1. SEITENLEISTE: VERBINDUNGEN & ATHLETENDATEN ---
+# --- 1. SEITENLEISTE: DIAGNOSE & VERBINDUNGEN ---
 st.sidebar.header("🔑 Verbindungen")
 
-# Liest direkt aus den Streamlit Cloud Secrets
-try:
-    sec_api = st.secrets["INTERVALS_API"]
-    sec_id = st.secrets["INTERVALS_ID"]
-    sec_gcal = st.secrets["GCAL_LINK"]
-    has_secrets = True
-except Exception:
-    sec_api, sec_id, sec_gcal = "", "0", ""
-    has_secrets = False
+# Diagnose: Welche Schlüssel existieren wirklich in st.secrets?
+vorhandene_keys = list(st.secrets.keys())
+st.sidebar.caption(f"Erkannte Secrets-Keys: `{vorhandene_keys}`")
 
-if has_secrets:
-    st.sidebar.success("✅ Zugangsdaten via Secrets geladen")
+# Werte sicher abrufen (Groß-/Kleinschreibung abfedern)
+sec_api = st.secrets.get("INTERVALS_API") or st.secrets.get("intervals_api", "")
+sec_id = str(st.secrets.get("INTERVALS_ID") or st.secrets.get("intervals_id", "0"))
+sec_gcal = st.secrets.get("GCAL_LINK") or st.secrets.get("gcal_link", "")
+
+if sec_api and sec_gcal:
+    st.sidebar.success("✅ Alle Zugangsdaten geladen")
     api_key = sec_api
     athlete_id = sec_id
     gcal_url = sec_gcal
 else:
-    st.sidebar.warning("⚠️ Keine Secrets gefunden – bitte manuell eingeben:")
-    api_key = st.sidebar.text_input("Intervals API Key", type="password")
-    athlete_id = st.sidebar.text_input("Intervals Athlete ID", value="0")
-    gcal_url = st.sidebar.text_input("Google Kalender iCal URL", type="password")
+    fehlend = []
+    if not sec_api: fehlend.append("INTERVALS_API")
+    if not sec_gcal: fehlend.append("GCAL_LINK")
+    st.sidebar.error(f"❌ Fehlt in Secrets: {', '.join(fehlend)}")
+    
+    api_key = st.sidebar.text_input("Intervals API Key", value=sec_api, type="password")
+    athlete_id = st.sidebar.text_input("Intervals Athlete ID", value=sec_id)
+    gcal_url = st.sidebar.text_input("Google Kalender iCal URL", value=sec_gcal, type="password")
 
 st.sidebar.markdown("---")
 st.sidebar.header("👤 Athletendaten")
