@@ -13,25 +13,31 @@ st.set_page_config(page_title="Trainings-Cockpit 2027", layout="wide", page_icon
 # --- 1. SEITENLEISTE: VERBINDUNGEN & ATHLETENDATEN ---
 st.sidebar.header("🔑 Verbindungen")
 
-# Automatischer Abruf aus .streamlit/secrets.toml (falls vorhanden)
-default_api = st.secrets.get("INTERVALS_API", "") if "INTERVALS_API" in st.secrets else ""
-default_id = st.secrets.get("INTERVALS_ID", "0") if "INTERVALS_ID" in st.secrets else "0"
-default_gcal = st.secrets.get("GCAL_LINK", "") if "GCAL_LINK" in st.secrets else ""
+# Liest direkt aus den Streamlit Cloud Secrets
+try:
+    sec_api = st.secrets["INTERVALS_API"]
+    sec_id = st.secrets["INTERVALS_ID"]
+    sec_gcal = st.secrets["GCAL_LINK"]
+    has_secrets = True
+except Exception:
+    sec_api, sec_id, sec_gcal = "", "0", ""
+    has_secrets = False
 
-api_key = st.sidebar.text_input("Intervals API Key", value=default_api, type="password")
-athlete_id = st.sidebar.text_input("Intervals Athlete ID", value=default_id)
-gcal_url = st.sidebar.text_input(
-    "Google Kalender iCal URL", 
-    value=default_gcal, 
-    type="password", 
-    help="Privatadresse im iCal-Format aus Google Kalender Einstellungen (endet auf .ics)"
-)
+if has_secrets:
+    st.sidebar.success("✅ Zugangsdaten via Secrets geladen")
+    api_key = sec_api
+    athlete_id = sec_id
+    gcal_url = sec_gcal
+else:
+    st.sidebar.warning("⚠️ Keine Secrets gefunden – bitte manuell eingeben:")
+    api_key = st.sidebar.text_input("Intervals API Key", type="password")
+    athlete_id = st.sidebar.text_input("Intervals Athlete ID", value="0")
+    gcal_url = st.sidebar.text_input("Google Kalender iCal URL", type="password")
 
 st.sidebar.markdown("---")
 st.sidebar.header("👤 Athletendaten")
 user_weight = st.sidebar.number_input("Gewicht (kg)", value=84.0, step=0.5)
 user_ftp = st.sidebar.number_input("FTP (Watt)", value=271, step=1)
-
 # --- 2. HELPER FUNKTIONEN ---
 @st.cache_data(ttl=300)
 def get_intervals_activities(oldest_str, newest_str, api_key, athlete_id):
